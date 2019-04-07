@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+    Parse ndnSim output logs.
+    @Author jonnykong@cs.ucla.edu
+    @Date   2019-04-07
+"""
+
 import os, sys
 import numpy as np
 
