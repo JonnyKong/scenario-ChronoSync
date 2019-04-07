@@ -21,6 +21,7 @@
 
 #include "ns3/ndnSIM-module.h"
 #include "ns3/integer.h"
+#include "ns3/uinteger.h"
 #include "ns3/string.h"
 #include "ns3/boolean.h"
 
@@ -38,6 +39,8 @@ public:
     static TypeId tid = TypeId("ChronoSyncApp")
       .SetParent<Application>()
       .AddConstructor<ChronoSyncApp>()
+      .AddAttribute("NodeID", "NodeID for sync node", UintegerValue(0),
+                    MakeUintegerAccessor(&ChronoSyncApp::m_nid), MakeUintegerChecker<uint64_t>())
       .AddAttribute("SyncPrefix", "Sync Prefix", StringValue("/"),
                     MakeNameAccessor(&ChronoSyncApp::m_syncPrefix), MakeNameChecker())
       .AddAttribute("UserPrefix", "User Prefix", StringValue("/"),
@@ -49,7 +52,9 @@ public:
       .AddAttribute("PeriodicPublishing", "Periodic data publishing", BooleanValue(false),
                     MakeBooleanAccessor(&ChronoSyncApp::m_periodicPublishing), MakeBooleanChecker())
       .AddAttribute("MaxNumberMessages", "Maximum number of messages", IntegerValue(2),
-                    MakeIntegerAccessor(&ChronoSyncApp::m_maxNumberMessages), MakeIntegerChecker<int32_t>());
+                    MakeIntegerAccessor(&ChronoSyncApp::m_maxNumberMessages), MakeIntegerChecker<int32_t>())
+      .AddAttribute("DataGenerationDuration", "Data generation duration", IntegerValue(3),
+                    MakeIntegerAccessor(&ChronoSyncApp::m_dataGenerationDuration), MakeIntegerChecker<int>());
 
     return tid;
   }
@@ -59,10 +64,11 @@ protected:
   virtual void
   StartApplication()
   {
-    m_instance.reset(new ::ndn::ChronoSync(m_minNumberMessages, m_maxNumberMessages));
+    m_instance.reset(new ::ndn::ChronoSync(m_nid, m_minNumberMessages, m_maxNumberMessages));
     m_instance->setSyncPrefix(m_syncPrefix);
     m_instance->setUserPrefix(m_userPrefix);
     m_instance->setRoutingPrefix(m_routingPrefix);
+    m_instance->setDataGenerationDuration(m_dataGenerationDuration);
     m_instance->initializeSync();
     if (m_periodicPublishing) {
       m_instance->runPeriodically();
@@ -80,12 +86,14 @@ protected:
 
 private:
   std::unique_ptr<::ndn::ChronoSync> m_instance;
+  uint64_t m_nid;
   Name m_syncPrefix;
   Name m_userPrefix;
   Name m_routingPrefix;
   int m_minNumberMessages;
   int m_maxNumberMessages;
   bool m_periodicPublishing;
+  int m_dataGenerationDuration;
 };
 
 } // namespace ndn

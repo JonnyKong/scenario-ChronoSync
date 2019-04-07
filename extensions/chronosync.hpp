@@ -24,13 +24,14 @@
 #include <ndn-cxx/face.hpp>
 
 #include <boost/random.hpp>
+#include <mutex>
 
 namespace ndn {
 
 class ChronoSync
 {
 public:
-  ChronoSync(const int minNumberMessages, const int maxNumberMessages);
+  ChronoSync(uint64_t nid, const int minNumberMessages, const int maxNumberMessages);
 
   void
   setSyncPrefix(const Name& syncPrefix);
@@ -40,6 +41,9 @@ public:
 
   void
   setRoutingPrefix(const Name& routingPrefix);
+
+  void
+  setDataGenerationDuration(const int dataGenerationDuration);
 
   void
   delayedInterest(int id);
@@ -63,6 +67,7 @@ public:
   runPeriodically();
 
 private:
+  uint64_t m_nid;
   boost::asio::io_service m_ioService;
   Face m_face;
   Scheduler m_scheduler;
@@ -71,6 +76,9 @@ private:
   Name m_userPrefix;
   Name m_routingPrefix;
   Name m_routableUserPrefix;
+  int m_dataGenerationDuration;
+  std::set<Name> m_dataFetched;
+  std::mutex m_dataFetchedMutex;
 
   shared_ptr<chronosync::Socket> m_socket;
 

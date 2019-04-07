@@ -23,13 +23,17 @@
 
 namespace ndn {
 
-ChronoSync::ChronoSync(const int minNumberMessages, const int maxNumberMessages)
-  : m_face(m_ioService)
+ChronoSync::ChronoSync(uint64_t nid, const int minNumberMessages, const int maxNumberMessages)
+  : m_nid(nid)
+  , m_face(m_ioService)
   , m_scheduler(m_ioService)
-  , m_randomGenerator(static_cast<unsigned int>(std::time(0)))
-  , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(1000, 3000))
+  // , m_randomGenerator(static_cast<unsigned int>(std::time(0)))
+  , m_randomGenerator(static_cast<unsigned int>(nid))
+  // , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(1000, 3000))
+  , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(40000 * 0.9, 40000 * 1.1))
   , m_messagesUniformRandom(m_randomGenerator, boost::uniform_int<>(minNumberMessages, maxNumberMessages))
-  , m_numberMessages(m_messagesUniformRandom())
+  // , m_numberMessages(m_messagesUniformRandom())
+  , m_numberMessages(1)
 {
 }
 
@@ -52,26 +56,37 @@ ChronoSync::setRoutingPrefix(const Name& routingPrefix)
 }
 
 void
+ChronoSync::setDataGenerationDuration(const int dataGenerationDuration)
+{
+  m_dataGenerationDuration = dataGenerationDuration;  
+}
+
+void
 ChronoSync::delayedInterest(int id)
 {
-  std::cout << "Delayed Interest with id: " << id << "\n";
+  int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+  if (now > (int64_t)m_dataGenerationDuration * 1000 * 1000) { 
+    return;
+  }
+  std::cout << now << " microseconds node(" << m_nid 
+            << ") Publish data with id: " << id << "\n";
   m_socket->publishData(reinterpret_cast<const uint8_t*>(std::to_string(id).c_str()),
                         std::to_string(id).size(), ndn::time::milliseconds(4000));
 
 
-  if (id < m_numberMessages)
-    m_scheduler.scheduleEvent(ndn::time::milliseconds(m_rangeUniformRandom()),
-                              bind(&ChronoSync::delayedInterest, this, ++id));
+  // if (id < m_numberMessages)
+  //   m_scheduler.scheduleEvent(ndn::time::milliseconds(m_rangeUniformRandom()),
+  //                             bind(&ChronoSync::delayedInterest, this, ++id));
 }
 
 void
 ChronoSync::publishDataPeriodically(int id)
-{
+{ 
   m_scheduler.scheduleEvent(ndn::time::milliseconds(m_rangeUniformRandom()),
-                            bind(&ChronoSync::delayedInterest, this, 1));
+                            bind(&ChronoSync::delayedInterest, this, id));
 
   m_scheduler.scheduleEvent(ndn::time::milliseconds(m_rangeUniformRandom()),
-                            bind(&ChronoSync::publishDataPeriodically, this, 1));
+                            bind(&ChronoSync::publishDataPeriodically, this, id + 1));
 }
 
 
@@ -82,15 +97,25 @@ ChronoSync::printData(const Data& data)
 
   std::string s (reinterpret_cast<const char*>(data.getContent().value()),
                  data.getContent().value_size());
+  int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+  // std::cout << now << " microseconds node(" << m_nid 
+  //           << ") Data received from " << peerName.toUri() << " : " <<  s << "\n";
+  auto data_name = data.getName().getSubName(1);
 
-  std::cout << "Data received from " << peerName.toUri() << " : " <<  s << "\n";
+  std::lock_guard<std::mutex> guard(m_dataFetchedMutex);
+  if (m_dataFetched.find(data_name) == m_dataFetched.end()) {
+    m_dataFetched.insert(data_name);
+    std::cout << now << " microseconds node(" << m_nid 
+              << ") Store New Data: " << data_name.toUri() << "\n";
+  }
 }
 
 
 void
 ChronoSync::processSyncUpdate(const std::vector<chronosync::MissingDataInfo>& updates)
 {
-  std::cout << "Process Sync Update \n";
+  // int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+  // std::cout << now << " microseconds node(" << m_nid << ") Process Sync Update \n";
   if (updates.empty()) {
     return;
   }
@@ -99,7 +124,7 @@ ChronoSync::processSyncUpdate(const std::vector<chronosync::MissingDataInfo>& up
     for (chronosync::SeqNo seq = updates[i].low; seq <= updates[i].high; ++seq) {
       m_socket->fetchData(updates[i].session, seq,
                           bind(&ChronoSync::printData, this, _1),
-                          2);
+                          20000);
     }
 
   }
@@ -117,7 +142,7 @@ ChronoSync::initializeSync()
                                                   m_routableUserPrefix,
                                                   m_face,
                                                   bind(&ChronoSync::processSyncUpdate, this, _1));
-
+  m_socket->setNodeID(m_nid);
 }
 
 void
