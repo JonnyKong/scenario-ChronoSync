@@ -47,11 +47,12 @@ class SyncDuration:
                     self._processDataInterest(line)
                 elif line.find("Send Data Reply") != -1:
                     self._processDataReply(line)
-                else:
-                    raise AssertionError()  # For debug
+                # else:
+                #     print(line)
+                #     raise AssertionError()  # For debug
 
     def _processDataSyncDuration(self, line):
-        elements = line.split(' ')
+        elements = line.strip().split(' ')
         time = elements[0]
         data_name = elements[-1]
         if data_name not in self._data_store:
@@ -69,15 +70,15 @@ class SyncDuration:
             self._data_sync_duration.append(cur_sync_duration)
 
     def _processStateSyncDuration(self, line):
-        elements = line.split(' ')
+        elements = line.strip().split(' ')
         time = elements[0]
         data_name = elements[-1]
-        if data_name not in self._data_store:
+        if data_name not in self._state_store:
             self._state_store[data_name] = DataInfo(int(time))
         else:
             self._state_store[data_name].Owner += 1
             self._state_store[data_name].LastTime = int(time)
-        data_info = self._data_store[data_name]
+        data_info = self._state_store[data_name]
         if data_info.Owner > self._node_num:
             raise AssertionError()
         elif not data_info.Available and data_info.Owner == self._availability_threshold:
@@ -95,7 +96,7 @@ class SyncDuration:
     def _processDataInterest(self, line):
         self._n_data_interest += 1
 
-    def _processSyncReply(self, line):
+    def _processDataReply(self, line):
         self._n_data_reply += 1
 
     def _printSyncDuration(self):
