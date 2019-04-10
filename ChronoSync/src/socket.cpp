@@ -22,6 +22,9 @@
  * @author Yingdi Yu <yingdi@cs.ucla.edu>
  */
 
+#include "ns3/nstime.h"
+#include <ndn-cxx/face.hpp>
+
 #include "socket.hpp"
 #include "logger.hpp"
 
@@ -51,6 +54,7 @@ Socket::Socket(const Name& syncPrefix,
   , m_signingId(signingId)
   , m_keyChain(ns3::ndn::StackHelper::getKeyChain())
   , m_validator(validator)
+  , m_scheduler(face.getIoService())
 {
   NDN_LOG_DEBUG(">> Socket::Socket");
   if (m_userPrefix != DEFAULT_NAME)
@@ -179,6 +183,7 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
 
   Interest interest(interestName);
   interest.setMustBeFresh(true);
+  interest.setInterestLifetime(time::milliseconds(1000));
 
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
   std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
@@ -187,14 +192,14 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
   DataValidationErrorCallback failureCallback =
     bind(&Socket::onDataValidationFailed, this, _1, _2);
   
-  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest: "
+  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (1): "
             << interestName << std::endl;
   m_face.expressInterest(interest,
                          bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
                          bind(&Socket::onDataTimeout, this, _1, nRetries,
-                              dataCallback, failureCallback), // Nack
+                              dataCallback, failureCallback, "NACK"), // Nack
                          bind(&Socket::onDataTimeout, this, _1, nRetries,
-                              dataCallback, failureCallback));
+                              dataCallback, failureCallback, "TIMEOUT"));
 }
 
 void
@@ -215,7 +220,7 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
   Interest interest(interestName);
   interest.setMustBeFresh(true);
   
-  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest: "
+  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (2): "
             << interestName << std::endl;
   m_face.expressInterest(interest,
                          bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
@@ -254,7 +259,8 @@ Socket::onData(const Interest& interest, const Data& data,
 void
 Socket::onDataTimeout(const Interest& interest, int nRetries,
                       const DataValidatedCallback& onValidated,
-                      const DataValidationErrorCallback& onFailed)
+                      const DataValidationErrorCallback& onFailed,
+                      const std::string& reason)
 {
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
   // std::cout << now << " microseconds node(" << m_nid << ") onDataTimeout()\n";
@@ -264,15 +270,29 @@ Socket::onDataTimeout(const Interest& interest, int nRetries,
 
   Interest newNonceInterest(interest);
   newNonceInterest.refreshNonce();
+  newNonceInterest.setInterestLifetime(time::milliseconds(1000));
+  newNonceInterest.setMustBeFresh(true);
 
-  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest: "
-            << interest.getName().toUri() << std::endl;
-  m_face.expressInterest(newNonceInterest,
-                         bind(&Socket::onData, this, _1, _2, onValidated, onFailed),
-                         bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
-                              onValidated, onFailed), // Nack
-                         bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
-                              onValidated, onFailed));
+  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (" 
+            << reason << "): " << interest.getName().toUri() << std::endl;
+  if (reason == "TIMEOUT") {
+    m_face.expressInterest(newNonceInterest,
+                           bind(&Socket::onData, this, _1, _2, onValidated, onFailed),
+                           bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
+                                onValidated, onFailed, "NACK"), // Nack
+                           bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
+                                onValidated, onFailed, "TIMEOUT"));
+  } else {
+    m_scheduler.scheduleEvent(time::milliseconds(1000), 
+                              [this, newNonceInterest, nRetries, onValidated, onFailed] {
+      m_face.expressInterest(newNonceInterest,
+                             bind(&Socket::onData, this, _1, _2, onValidated, onFailed),
+                             bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
+                                  onValidated, onFailed, "NACK"), // Nack
+                             bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
+                                  onValidated, onFailed, "TIMEOUT"));
+    });
+  }
 }
 
 void

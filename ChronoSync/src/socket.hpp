@@ -30,6 +30,7 @@
 #include <unordered_map>
 
 #include <ndn-cxx/ims/in-memory-storage-persistent.hpp>
+#include <ndn-cxx/util/scheduler.hpp>
 
 #include "ns3/ndnSIM-module.h"
 
@@ -234,7 +235,8 @@ private:
   void
   onDataTimeout(const Interest& interest, int nRetries,
                 const DataValidatedCallback& dataCallback,
-                const DataValidationErrorCallback& failCallback);
+                const DataValidationErrorCallback& failCallback,
+                const std::string& reason);
 
   void
   onDataValidationFailed(const Data& data,
@@ -251,6 +253,7 @@ private:
   Name m_userPrefix;
   ndn::Face& m_face;
   Logic m_logic;
+  ndn::Scheduler m_scheduler;
   uint64_t m_nid;   // Node ID for printing debug statements`
 
   Name m_signingId;
