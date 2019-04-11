@@ -183,7 +183,7 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
 
   Interest interest(interestName);
   interest.setMustBeFresh(true);
-  interest.setInterestLifetime(time::milliseconds(1000));
+  interest.setInterestLifetime(time::milliseconds(5000));
 
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
   std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
@@ -270,7 +270,7 @@ Socket::onDataTimeout(const Interest& interest, int nRetries,
 
   Interest newNonceInterest(interest);
   newNonceInterest.refreshNonce();
-  newNonceInterest.setInterestLifetime(time::milliseconds(1000));
+  newNonceInterest.setInterestLifetime(time::milliseconds(5000));
   newNonceInterest.setMustBeFresh(true);
 
   std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (" 
