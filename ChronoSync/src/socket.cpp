@@ -27,6 +27,7 @@
 
 #include "socket.hpp"
 #include "logger.hpp"
+#include <time.h>
 
 INIT_LOGGER(Socket);
 // NS_LOG_COMPONENT_DEFINE("ChronoSocket");
@@ -58,6 +59,8 @@ Socket::Socket(const Name& syncPrefix,
   , m_validator(validator)
   , m_scheduler(face.getIoService())
   , m_keep_data_copy(false)
+  , m_random_generator(std::time(0))
+  , m_data_interest_random(m_random_generator, boost::uniform_int<>(0, 1000))
 {
   NDN_LOG_DEBUG(">> Socket::Socket");
   std::cout << "m_userPrefix: " << m_userPrefix << std::endl;
@@ -245,8 +248,6 @@ Socket::onInterest(const Name& prefix, const Interest& interest)
               << interest.getName().toUri() << std::endl;
 
     m_face.put(*data);
-  } else {
-    std::cout << "Node " << m_userPrefix << " Doesn't have: " << interest.getName() << std::endl;
   }
 }
 
@@ -285,24 +286,20 @@ Socket::onDataTimeout(const Interest& interest, int nRetries,
 
   std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (" 
             << reason << "): " << interest.getName().toUri() << std::endl;
-  if (reason == "TIMEOUT") {
+
+  int delay = m_data_interest_random();
+  if (reason == "NACK")
+    delay += 4000;
+
+  m_scheduler.scheduleEvent(time::milliseconds(delay), 
+                            [this, newNonceInterest, nRetries, onValidated, onFailed] {
     m_face.expressInterest(newNonceInterest,
                            bind(&Socket::onData, this, _1, _2, onValidated, onFailed),
                            bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
                                 onValidated, onFailed, "NACK"), // Nack
                            bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
                                 onValidated, onFailed, "TIMEOUT"));
-  } else {
-    m_scheduler.scheduleEvent(time::milliseconds(1000), 
-                              [this, newNonceInterest, nRetries, onValidated, onFailed] {
-      m_face.expressInterest(newNonceInterest,
-                             bind(&Socket::onData, this, _1, _2, onValidated, onFailed),
-                             bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
-                                  onValidated, onFailed, "NACK"), // Nack
-                             bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
-                                  onValidated, onFailed, "TIMEOUT"));
-    });
-  }
+  });
 }
 
 void

@@ -70,7 +70,7 @@ class SyncDuration:
         data_info = self._data_store[data_name]
         if data_info.Owner > self._node_num:
             raise AssertionError()
-        elif not data_info.Available and data_info.Owner == self._availability_threshold:
+        elif not data_info.Available and data_info.Owner >= self._availability_threshold:
             self._data_store[data_name].Available = True
             cur_sync_duration = data_info.LastTime - data_info.GenerationTime
             cur_sync_duration = float(cur_sync_duration) / 1000000.0
@@ -87,8 +87,10 @@ class SyncDuration:
             self._state_store[data_name].LastTime = int(time)
         data_info = self._state_store[data_name]
         if data_info.Owner > self._node_num:
+            print("DATA INFO: ")
+            print(line)
             raise AssertionError()
-        elif not data_info.Available and data_info.Owner == self._availability_threshold:
+        elif not data_info.Available and data_info.Owner >= self._availability_threshold:
             self._state_store[data_name].Available = True
             cur_sync_duration = data_info.LastTime - data_info.GenerationTime
             cur_sync_duration = float(cur_sync_duration) / 1000000.0

@@ -5,6 +5,7 @@ set -e
 
 RUN_TIMES=12
 
+rm results/*.txt
 ./waf
 
 for (( TIME=1; TIME<=$RUN_TIMES; TIME++ )); do

@@ -27,8 +27,7 @@ ChronoSync::ChronoSync(uint64_t nid, const int minNumberMessages, const int maxN
   : m_nid(nid)
   , m_face(m_ioService)
   , m_scheduler(m_ioService)
-  // , m_randomGenerator(static_cast<unsigned int>(std::time(0)))
-  , m_randomGenerator(static_cast<unsigned int>(nid))
+  , m_randomGenerator(static_cast<unsigned int>(std::time(0)))
   // , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(1000, 3000))
   , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(40000 * 0.9, 40000 * 1.1))
   , m_messagesUniformRandom(m_randomGenerator, boost::uniform_int<>(minNumberMessages, maxNumberMessages))
@@ -124,7 +123,7 @@ ChronoSync::processSyncUpdate(const std::vector<chronosync::MissingDataInfo>& up
     for (chronosync::SeqNo seq = updates[i].low; seq <= updates[i].high; ++seq) {
       m_socket->fetchData(updates[i].session, seq,
                           bind(&ChronoSync::printData, this, _1),
-                          99);
+                          9);
     }
 
   }
@@ -140,6 +139,7 @@ ChronoSync::initializeSync()
                                                   m_face,
                                                   bind(&ChronoSync::processSyncUpdate, this, _1));
   m_socket->setNodeID(m_nid);
+  m_socket->setKeepDataCopy();
 }
 
 void

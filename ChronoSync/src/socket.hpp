@@ -28,6 +28,7 @@
 #include "logic.hpp"
 
 #include <unordered_map>
+#include <boost/random.hpp>
 
 #include <ndn-cxx/ims/in-memory-storage-persistent.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
@@ -270,6 +271,9 @@ private:
   Name m_signingId;
   ndn::KeyChain& m_keyChain;
   std::shared_ptr<Validator> m_validator;
+
+  boost::mt19937 m_random_generator;             // Collision avoidance
+  boost::variate_generator<boost::mt19937&, boost::uniform_int<>> m_data_interest_random;
 
   RegisteredPrefixList m_registeredPrefixList;
   ndn::InMemoryStoragePersistent m_ims;
