@@ -21,7 +21,7 @@ class SyncDuration:
     def __init__(self, filename):
         self._filename = filename
         self._node_num = 20
-        self._availability_threshold = int(self._node_num * 0.9)
+        self._availability_threshold = int(self._node_num * 0.95)
         # self._availability_threshold = 2 
 
         self._data_sync_duration = []

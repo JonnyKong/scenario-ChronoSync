@@ -38,6 +38,7 @@ const ndn::Name Socket::DEFAULT_PREFIX;
 const std::shared_ptr<Validator> Socket::DEFAULT_VALIDATOR;
 
 Socket::Socket(const Name& syncPrefix,
+               const Name& routingPrefix,
                const Name& userPrefix,
                ndn::Face& face,
                const UpdateCallback& updateCallback,
@@ -45,7 +46,8 @@ Socket::Socket(const Name& syncPrefix,
                std::shared_ptr<Validator> validator,
                const time::milliseconds& syncInterestLifetime,
                const name::Component& session)
-  : m_userPrefix(userPrefix)
+  : m_routingPrefix(routingPrefix)
+  , m_userPrefix(Name("").append(routingPrefix).append(userPrefix))
   , m_face(face)
   , m_logic(face, syncPrefix, userPrefix, updateCallback, Logic::DEFAULT_NAME, Logic::DEFAULT_VALIDATOR,
             Logic::DEFAULT_RESET_TIMER, Logic::DEFAULT_CANCEL_RESET_TIMER, Logic::DEFAULT_RESET_INTEREST_LIFETIME,
@@ -55,11 +57,13 @@ Socket::Socket(const Name& syncPrefix,
   , m_keyChain(ns3::ndn::StackHelper::getKeyChain())
   , m_validator(validator)
   , m_scheduler(face.getIoService())
+  , m_keep_data_copy(false)
 {
   NDN_LOG_DEBUG(">> Socket::Socket");
+  std::cout << "m_userPrefix: " << m_userPrefix << std::endl;
   if (m_userPrefix != DEFAULT_NAME)
     m_registeredPrefixList[m_userPrefix] =
-      m_face.setInterestFilter(m_userPrefix,
+      m_face.setInterestFilter(m_routingPrefix,
                                bind(&Socket::onInterest, this, _1, _2),
                                [] (const Name& prefix, const std::string& msg) {});
   NDN_LOG_DEBUG("<< Socket::Socket");
@@ -136,10 +140,10 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
   data->setFreshnessPeriod(freshness);
 
   SeqNo newSeq = m_logic.getSeqNo(prefix) + 1;
-  Name dataName;
+  Name dataName("/chronosync");
   dataName.append(m_logic.getSessionName(prefix)).appendNumber(newSeq);
   data->setName(dataName);
-
+  
   if (m_signingId.empty())
     m_keyChain.sign(*data);
   else
@@ -159,10 +163,10 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
   data->setFreshnessPeriod(freshness);
 
   SeqNo newSeq = seqNo;
-  Name dataName;
+  Name dataName("/chronosync");
   dataName.append(m_logic.getSessionName(prefix)).appendNumber(newSeq);
   data->setName(dataName);
-
+  
   if (m_signingId.empty())
     m_keyChain.sign(*data);
   else
@@ -179,7 +183,7 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
                   int nRetries)
 {
   Name interestName;
-  interestName.append(sessionName).appendNumber(seqNo);
+  interestName.append(m_routingPrefix).append(sessionName).appendNumber(seqNo);
 
   Interest interest(interestName);
   interest.setMustBeFresh(true);
@@ -234,12 +238,15 @@ void
 Socket::onInterest(const Name& prefix, const Interest& interest)
 {
   shared_ptr<const Data> data = m_ims.find(interest);
+  std::cout << "Node " << m_nid << " Received data interest: " << interest.getName().toUri() << std::endl;
   if (data != nullptr) {
     int64_t now = ns3::Simulator::Now().GetMicroSeconds();
     std::cout << now << " microseconds node(" << m_nid << ") Send Data Reply "
               << interest.getName().toUri() << std::endl;
 
     m_face.put(*data);
+  } else {
+    std::cout << "Node " << m_userPrefix << " Doesn't have: " << interest.getName() << std::endl;
   }
 }
 
@@ -250,10 +257,13 @@ Socket::onData(const Interest& interest, const Data& data,
 {
   _LOG_DEBUG("Socket::onData");
 
-  if (static_cast<bool>(m_validator))
+  if (static_cast<bool>(m_validator)) {
     m_validator->validate(data, onValidated, onFailed);
-  else
+  } else {
+    if (m_keep_data_copy)
+      m_ims.insert(data);
     onValidated(data);
+  }
 }
 
 void

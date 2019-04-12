@@ -88,6 +88,7 @@ main(int argc, char* argv[])
 
   // 4. Set multicast
   StrategyChoiceHelper::InstallAll("/ndn", "/localhost/nfd/strategy/multicast");
+  StrategyChoiceHelper::InstallAll("/chronosync", "/localhost/nfd/strategy/multicast");
 
   // 5. Install sync app
   uint64_t idx = 0;
@@ -101,7 +102,7 @@ main(int argc, char* argv[])
     syncAppHelper.SetAttribute("NodeID", UintegerValue(idx));
     syncAppHelper.SetAttribute("SyncPrefix", StringValue("/ndn/broadcast/sync"));
     syncAppHelper.SetAttribute("UserPrefix", StringValue(std::string("/peer") + std::to_string(idx)));
-    syncAppHelper.SetAttribute("RoutingPrefix", StringValue("/ndn"));
+    syncAppHelper.SetAttribute("RoutingPrefix", StringValue("/chronosync"));
     syncAppHelper.SetAttribute("MinNumberMessages", StringValue("1"));
     syncAppHelper.SetAttribute("MaxNumberMessages", StringValue("100"));
     syncAppHelper.SetAttribute("PeriodicPublishing", StringValue("true"));
@@ -110,7 +111,7 @@ main(int argc, char* argv[])
     
     // Add route to all nodes
     FibHelper::AddRoute(object, "/ndn/broadcast/sync", std::numeric_limits<int32_t>::max());
-    FibHelper::AddRoute(object, "/ndn", std::numeric_limits<int32_t>::max());
+    FibHelper::AddRoute(object, "/chronosync", std::numeric_limits<int32_t>::max());
     idx++;
   }
 
@@ -128,5 +129,5 @@ main(int argc, char* argv[])
 int
 main(int argc, char* argv[])
 {
-    return ns3::ndn::main(argc, argv);
+  return ns3::ndn::main(argc, argv);
 }

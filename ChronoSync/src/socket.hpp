@@ -63,6 +63,7 @@ public:
   };
 
   Socket(const Name& syncPrefix,
+         const Name& routingPrefix,
          const Name& userPrefix,
          ndn::Face& face,
          const UpdateCallback& updateCallback,
@@ -216,11 +217,18 @@ public:
     return m_logic;
   }
 
+  /// @brief Set to node id for debug
   void
   setNodeID(uint64_t nid)
   {
     m_nid = nid;
     m_logic.setNodeID(nid);
+  }
+
+  /// @brief Set node to keep a copy of every data received
+  void
+  setKeepDataCopy() {
+    m_keep_data_copy = true;
   }
 
 private:
@@ -250,11 +258,14 @@ public:
 private:
   using RegisteredPrefixList = std::unordered_map<ndn::Name, const ndn::RegisteredPrefixId*>;
 
+  Name m_routingPrefix;
   Name m_userPrefix;
   ndn::Face& m_face;
   Logic m_logic;
   ndn::Scheduler m_scheduler;
-  uint64_t m_nid;   // Node ID for printing debug statements`
+  uint64_t m_nid;                               // Node ID for printing debug statements`
+  bool m_keep_data_copy;                        // Whether to keep a local copy for every data
+  std::unordered_map<Name, Data> m_data_store;  
 
   Name m_signingId;
   ndn::KeyChain& m_keyChain;

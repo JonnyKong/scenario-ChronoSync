@@ -124,7 +124,7 @@ ChronoSync::processSyncUpdate(const std::vector<chronosync::MissingDataInfo>& up
     for (chronosync::SeqNo seq = updates[i].low; seq <= updates[i].high; ++seq) {
       m_socket->fetchData(updates[i].session, seq,
                           bind(&ChronoSync::printData, this, _1),
-                          9);
+                          99);
     }
 
   }
@@ -134,12 +134,9 @@ void
 ChronoSync::initializeSync()
 {
   std::cout << "ChronoSync Instance Initialized \n";
-  m_routableUserPrefix = Name();
-  m_routableUserPrefix.clear();
-  m_routableUserPrefix.append(m_routingPrefix).append(m_userPrefix);
-
   m_socket = std::make_shared<chronosync::Socket>(m_syncPrefix,
-                                                  m_routableUserPrefix,
+                                                  m_routingPrefix,
+                                                  m_userPrefix,
                                                   m_face,
                                                   bind(&ChronoSync::processSyncUpdate, this, _1));
   m_socket->setNodeID(m_nid);
