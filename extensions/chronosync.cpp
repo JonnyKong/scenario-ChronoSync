@@ -81,8 +81,9 @@ ChronoSync::delayedInterest(int id)
 void
 ChronoSync::publishDataPeriodically(int id)
 { 
-  m_scheduler.scheduleEvent(ndn::time::milliseconds(m_rangeUniformRandom()),
-                            bind(&ChronoSync::delayedInterest, this, id));
+  // m_scheduler.scheduleEvent(ndn::time::milliseconds(m_rangeUniformRandom()),
+  //                           bind(&ChronoSync::delayedInterest, this, id));
+  delayedInterest(id);
 
   m_scheduler.scheduleEvent(ndn::time::milliseconds(m_rangeUniformRandom()),
                             bind(&ChronoSync::publishDataPeriodically, this, id + 1));
@@ -152,7 +153,7 @@ ChronoSync::run()
 void
 ChronoSync::runPeriodically()
 {
-  m_scheduler.scheduleEvent(ndn::time::milliseconds(m_rangeUniformRandom()),
+  m_scheduler.scheduleEvent(ndn::time::milliseconds(100 * m_nid),
                             bind(&ChronoSync::publishDataPeriodically, this, 1));
 }
 

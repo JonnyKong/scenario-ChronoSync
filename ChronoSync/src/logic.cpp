@@ -356,13 +356,16 @@ Logic::onSyncInterest(const Name& prefix, const Interest& interest)
   _LOG_DEBUG_ID("InterestName: " << name);
 
   if (name.size() >= 1 && RESET_COMPONENT == name.get(-1)) {
+    // printf("Node(%d) processResetInterest()\n", m_nid);
     processResetInterest(interest);
   }
   else if (name.size() >= 2 && RECOVERY_COMPONENT == name.get(-2)) {
+    // printf("Node(%d) processRecoveryInterest()\n", m_nid);
     processRecoveryInterest(interest);
   }
   // Do not process exclude interests, they should be answered by CS
   else if (interest.getExclude().empty()) {
+    // printf("Node(%d) processSyncInterest()\n", m_nid);
     processSyncInterest(interest);
   }
 
@@ -450,6 +453,7 @@ Logic::processSyncInterest(const Interest& interest, bool isTimedProcessing/*=fa
   // If the digest of the incoming interest is the same as root digest
   // Put the interest into InterestTable
   if (*rootDigest == *digest) {
+    // printf("node(%d): Oh, we are in the same state\n", m_nid);
     _LOG_DEBUG_ID("Oh, we are in the same state");
     m_interestTable.insert(interest, digest, false);
 
@@ -470,6 +474,7 @@ Logic::processSyncInterest(const Interest& interest, bool isTimedProcessing/*=fa
                                   bind(&Logic::processSyncInterest, this, interest, true));
     }
     else {
+      // printf("node(%d): Timed processing in reset\n", m_nid);
       _LOG_DEBUG_ID("Timed processing in reset");
       // Now we can get out of reset state by putting our own stuff into m_state.
       cancelReset();
@@ -480,6 +485,7 @@ Logic::processSyncInterest(const Interest& interest, bool isTimedProcessing/*=fa
 
   // If the digest of incoming interest is an "empty" digest
   if (*digest == *EMPTY_DIGEST) {
+    // printf("node(%d): Poor guy, he knows nothing\n", m_nid);
     _LOG_DEBUG_ID("Poor guy, he knows nothing");
     sendSyncData(m_defaultUserPrefix, name, m_state);
     return;
@@ -488,12 +494,14 @@ Logic::processSyncInterest(const Interest& interest, bool isTimedProcessing/*=fa
   DiffStateContainer::iterator stateIter = m_log.find(digest);
   // If the digest of incoming interest can be found from the log
   if (stateIter != m_log.end()) {
+    // printf("node(%d): It is ok, you are so close\n", m_nid);
     _LOG_DEBUG_ID("It is ok, you are so close");
     sendSyncData(m_defaultUserPrefix, name, *(*stateIter)->diff());
     return;
   }
 
   if (!isTimedProcessing) {
+    // printf("node(%d): Let's wait, just wait for a while\n", m_nid);
     _LOG_DEBUG_ID("Let's wait, just wait for a while");
     // Do not hurry, some incoming SyncReplies may help us to recognize the digest
     bool doesExist = m_interestTable.has(digest);
@@ -509,6 +517,7 @@ Logic::processSyncInterest(const Interest& interest, bool isTimedProcessing/*=fa
   }
   else {
     // OK, nobody is helping us, just tell the truth.
+    // printf("node(%d): OK, nobody is helping us, let us try to recover\n", m_nid);
     _LOG_DEBUG_ID("OK, nobody is helping us, let us try to recover");
     m_interestTable.erase(digest);
     sendRecoveryInterest(digest);
@@ -834,7 +843,7 @@ Logic::sendRecoveryInterest(ConstBufferPtr digest)
   interest.setInterestLifetime(m_recoveryInterestLifetime);
   
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
-  std::cout << now << " microseconds node(" << m_nid << ") Send Sync Interest"
+  std::cout << now << " microseconds node(" << m_nid << ") Send Sync Interest (Recovery)"
             << std::endl;
 
   const ndn::PendingInterestId* pendingInterestId = m_face.expressInterest(interest,
