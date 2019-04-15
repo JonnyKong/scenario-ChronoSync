@@ -18,8 +18,7 @@ class CDFPlotter:
         self._filenames = []
         # Default x limit: 0-2400
         self._x = np.linspace(0, 2400, num = 2400 + 1)
-        # Default y limit: 400 * 20
-        self._y_lim = 400 * 20
+        self._node_num = 20
         self._y = []    # 1D array
         self._ys = []   # 2D array
 
@@ -31,7 +30,6 @@ class CDFPlotter:
     # Calculate the mean of self._ys and draw CDF graph
     def plotCdf(self):
         self._y = [float(sum(l)) / len(l) for l in zip(*self._ys)]
-        self._y = [float(l / self._y_lim) for l in self._y]
         plt.plot(self._x, self._y)
         plt.ylim((0, 1))
         plt.show()
@@ -39,15 +37,21 @@ class CDFPlotter:
     # Read one file, interpolate its values and add to self._ys
     def _parseFile(self, filename):
         x = []
-        y = []
+        data_store = set()
         with open(filename, "r") as f:
             for line in f.readlines():
                 if line.find("Store New Data") == -1:
                     continue
                 elements = line.strip().split(' ')
                 time = elements[0]
+                data = elements[-1]
+                if data not in data_store:
+                    data_store.add(data)
                 x.append(int(time) / 1000000)
-        self._ys.append(self._interp0d(x))
+        y = self._interp0d(x)
+        y = [float(l / (len(data_store) * self._node_num)) for l in y] # Normalization
+        self._ys.append(y)
+        print("Avail: %f" % y[-1])
 
     # 0-d interpolation according to self._x
     def _interp0d(self, x):
@@ -64,4 +68,4 @@ if __name__ == "__main__":
     plotter = CDFPlotter()
     for arg in sys.argv[1:]:
         plotter.addFile(arg)
-    plotter.plotCdf()
+    # plotter.plotCdf()
