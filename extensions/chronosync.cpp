@@ -27,7 +27,7 @@ ChronoSync::ChronoSync(uint64_t nid, const int minNumberMessages, const int maxN
   : m_nid(nid)
   , m_face(m_ioService)
   , m_scheduler(m_ioService)
-  , m_randomGenerator(static_cast<unsigned int>(std::time(0)))
+  , m_randomGenerator(nid)
   // , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(1000, 3000))
   , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(40000 * 0.9, 40000 * 1.1))
   , m_messagesUniformRandom(m_randomGenerator, boost::uniform_int<>(minNumberMessages, maxNumberMessages))
