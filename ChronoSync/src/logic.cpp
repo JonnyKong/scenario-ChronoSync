@@ -52,10 +52,10 @@ const ndn::Name Logic::EMPTY_NAME;
 const std::shared_ptr<Validator> Logic::DEFAULT_VALIDATOR;
 const time::steady_clock::Duration Logic::DEFAULT_RESET_TIMER = time::seconds(0);
 const time::steady_clock::Duration Logic::DEFAULT_CANCEL_RESET_TIMER = time::milliseconds(500);
-const time::milliseconds Logic::DEFAULT_RESET_INTEREST_LIFETIME(1000);
-const time::milliseconds Logic::DEFAULT_SYNC_INTEREST_LIFETIME(1000);
+const time::milliseconds Logic::DEFAULT_RESET_INTEREST_LIFETIME(8000);
+const time::milliseconds Logic::DEFAULT_SYNC_INTEREST_LIFETIME(8000);
 const time::milliseconds Logic::DEFAULT_SYNC_REPLY_FRESHNESS(1000);
-const time::milliseconds Logic::DEFAULT_RECOVERY_INTEREST_LIFETIME(1000);
+const time::milliseconds Logic::DEFAULT_RECOVERY_INTEREST_LIFETIME(8000);
 
 const ConstBufferPtr Logic::EMPTY_DIGEST(new ndn::Buffer(EMPTY_DIGEST_VALUE, 32));
 const ndn::name::Component Logic::RESET_COMPONENT("reset");

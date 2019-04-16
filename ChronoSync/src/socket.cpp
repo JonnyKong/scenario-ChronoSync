@@ -189,7 +189,7 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
   interestName.append(m_routingPrefix).append(sessionName).appendNumber(seqNo);
 
   Interest interest(interestName);
-  interest.setMustBeFresh(true);
+  // interest.setMustBeFresh(true);
   interest.setInterestLifetime(time::milliseconds(5000));
 
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
@@ -199,14 +199,20 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
   DataValidationErrorCallback failureCallback =
     bind(&Socket::onDataValidationFailed, this, _1, _2);
   
-  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (1): "
-            << interestName << std::endl;
-  m_face.expressInterest(interest,
-                         bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
-                         bind(&Socket::onDataTimeout, this, _1, nRetries,
-                              dataCallback, failureCallback, "NACK"), // Nack
-                         bind(&Socket::onDataTimeout, this, _1, nRetries,
-                              dataCallback, failureCallback, "TIMEOUT"));
+  // Add random timer for collision avoidance
+  int delay = m_data_interest_random();
+  m_scheduler.scheduleEvent(time::milliseconds(delay), 
+                            [this, interest, interestName, dataCallback, failureCallback, nRetries]{
+    int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+    std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (1): "
+              << interestName << std::endl;
+    m_face.expressInterest(interest,
+                           bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
+                           bind(&Socket::onDataTimeout, this, _1, nRetries,
+                                dataCallback, failureCallback, "NACK"), // Nack
+                           bind(&Socket::onDataTimeout, this, _1, nRetries,
+                                dataCallback, failureCallback, "TIMEOUT"));
+  });
 }
 
 void
@@ -225,14 +231,20 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
             << interestName << std::endl;
 
   Interest interest(interestName);
-  interest.setMustBeFresh(true);
+  // interest.setMustBeFresh(true);
   
-  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (2): "
+  // Add random timer for collision avoidance
+  int delay = m_data_interest_random();
+  m_scheduler.scheduleEvent(time::milliseconds(delay), 
+                            [this, interest, interestName, dataCallback, failureCallback, onTimeout] {
+    int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+    std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (2): "
             << interestName << std::endl;
-  m_face.expressInterest(interest,
-                         bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
-                         bind(onTimeout, _1), // Nack
-                         onTimeout);
+    m_face.expressInterest(interest,
+                           bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
+                           bind(onTimeout, _1), // Nack
+                           onTimeout);
+  });
 
   _LOG_DEBUG("<< Socket::fetchData");
 }
@@ -240,14 +252,21 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
 void
 Socket::onInterest(const Name& prefix, const Interest& interest)
 {
+  int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+  std::cout << now <<  " microseconds node(" << m_nid << ") Received data interest: "
+            << interest.getName().toUri() << std::endl;
+  
   shared_ptr<const Data> data = m_ims.find(interest);
-  std::cout << "Node " << m_nid << " Received data interest: " << interest.getName().toUri() << std::endl;
   if (data != nullptr) {
     int64_t now = ns3::Simulator::Now().GetMicroSeconds();
     std::cout << now << " microseconds node(" << m_nid << ") Send Data Reply "
               << interest.getName().toUri() << std::endl;
 
-    m_face.put(*data);
+    // Add random timer for collision avoidance
+    int delay = m_data_interest_random();
+    m_scheduler.scheduleEvent(time::milliseconds(delay), [this, data]{
+      m_face.put(*data);
+    });
   }
 }
 
@@ -282,17 +301,19 @@ Socket::onDataTimeout(const Interest& interest, int nRetries,
   Interest newNonceInterest(interest);
   newNonceInterest.refreshNonce();
   newNonceInterest.setInterestLifetime(time::milliseconds(5000));
-  newNonceInterest.setMustBeFresh(true);
-
-  std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (" 
-            << reason << "): " << interest.getName().toUri() << std::endl;
+  // newNonceInterest.setMustBeFresh(true);
 
   int delay = m_data_interest_random();
+
+  // Should wait for longer time if received NACK
   if (reason == "NACK")
     delay += 4000;
 
   m_scheduler.scheduleEvent(time::milliseconds(delay), 
-                            [this, newNonceInterest, nRetries, onValidated, onFailed] {
+                            [this, newNonceInterest, nRetries, reason, onValidated, onFailed] {
+    int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+    std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (" 
+              << reason << "): " << newNonceInterest.getName().toUri() << std::endl;
     m_face.expressInterest(newNonceInterest,
                            bind(&Socket::onData, this, _1, _2, onValidated, onFailed),
                            bind(&Socket::onDataTimeout, this, _1, nRetries - 1,

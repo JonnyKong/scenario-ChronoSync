@@ -25,6 +25,7 @@
 #include "ns3/ndnSIM-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
+#include "ns3/error-rate-model.h"
 #include <cstdio>
 
 
@@ -42,6 +43,13 @@ main(int argc, char* argv[])
   Config::SetDefault ("ns3::WifiRemoteStationManager::FragmentationThreshold", StringValue ("2200"));
   Config::SetDefault ("ns3::WifiRemoteStationManager::RtsCtsThreshold", StringValue ("2200"));
   Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
+
+  // Set loss rate
+  Config::SetDefault ("ns3::RateErrorModel::ErrorRate", DoubleValue (0.05));
+  Config::SetDefault ("ns3::RateErrorModel::ErrorUnit", StringValue ("ERROR_UNIT_PACKET"));
+  ObjectFactory factory;
+  factory.SetTypeId ("ns3::RateErrorModel");
+  Ptr<ErrorModel> em = factory.Create<ErrorModel> ();
 
   // Set params
   CommandLine cmd;
@@ -75,6 +83,7 @@ main(int argc, char* argv[])
 
   // 1. Install wifi
   NetDeviceContainer wifiNetDevices = wifi.Install(wifiPhyHelper, wifiMacHelper, nodes);
+  // wifiNetDevices.Get(1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
   wifi.AssignStreams(wifiNetDevices, 0);
 
   // 2. Install mobility
