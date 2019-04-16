@@ -44,19 +44,13 @@ main(int argc, char* argv[])
   Config::SetDefault ("ns3::WifiRemoteStationManager::RtsCtsThreshold", StringValue ("2200"));
   Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
 
-  // Set loss rate
-  Config::SetDefault ("ns3::RateErrorModel::ErrorRate", DoubleValue (0.05));
-  Config::SetDefault ("ns3::RateErrorModel::ErrorUnit", StringValue ("ERROR_UNIT_PACKET"));
-  ObjectFactory factory;
-  factory.SetTypeId ("ns3::RateErrorModel");
-  Ptr<ErrorModel> em = factory.Create<ErrorModel> ();
-
   // Set params
   CommandLine cmd;
   cmd.Parse(argc, argv);
   int node_num = 20;
   int range = 60;
   int sim_time = 2400;
+  double loss_rate = 0.05;
 
   // Wifi
   RngSeedManager::SetRun(0);
@@ -118,6 +112,9 @@ main(int argc, char* argv[])
     syncAppHelper.SetAttribute("DataGenerationDuration", IntegerValue(800));
     syncAppHelper.Install(object).Start(Seconds(2));
     
+    // Set loss rate
+    StackHelper::setLossRate(loss_rate, object);
+
     // Add route to all nodes
     FibHelper::AddRoute(object, "/ndn/broadcast/sync", std::numeric_limits<int32_t>::max());
     FibHelper::AddRoute(object, "/chronosync", std::numeric_limits<int32_t>::max());
