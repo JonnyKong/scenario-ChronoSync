@@ -45,12 +45,14 @@ main(int argc, char* argv[])
   Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
 
   // Set params
+  double loss_rate;
   CommandLine cmd;
+  cmd.AddValue("lossRate", "loss rate", loss_rate);
+
   cmd.Parse(argc, argv);
   int node_num = 20;
   int range = 60;
   int sim_time = 2400;
-  double loss_rate = 0.05;
 
   // Wifi
   RngSeedManager::SetRun(0);
