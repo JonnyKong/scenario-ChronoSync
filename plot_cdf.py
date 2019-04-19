@@ -32,7 +32,7 @@ class CdfPlotter(object):
         self._filenames.append(filename)
         self._parse_file(filename)
 
-    def plot_cdf(self, save=False):
+    def plot_cdf_mean(self, save=False):
         """
         Calculate the mean of self._ys_mesh and draw CDF graph, or save the graph
         to "tmp.png".

@@ -1,0 +1,127 @@
+diff --git a/core/scheduler.cpp b/core/scheduler.cpp
+index fd310eb..b6ade81 100644
+--- a/core/scheduler.cpp
++++ b/core/scheduler.cpp
+@@ -36,7 +36,7 @@ static boost::thread_specific_ptr<Scheduler> g_scheduler;
+ Scheduler&
+ getGlobalScheduler()
+ {
+-  static ndn::DummyIoService io;
++  static boost::asio::io_service io;
+   if (g_scheduler.get() == nullptr) {
+     g_scheduler.reset(new Scheduler(io));
+   }
+diff --git a/daemon/fw/forwarder.cpp b/daemon/fw/forwarder.cpp
+index 0f1c0d4..8c7bdd5 100644
+--- a/daemon/fw/forwarder.cpp
++++ b/daemon/fw/forwarder.cpp
+@@ -32,9 +32,20 @@
+ #include <ndn-cxx/lp/tags.hpp>
+ 
+ #include "face/null-face.hpp"
++#include "core/random.hpp"
+ 
+ namespace nfd {
+ 
++static const Name syncPrefix = Name("/ndn/broadcast/sync");
++static const Name dataPrefix = Name("/chronosync");
++
++static inline double
++getRandomNumber(double start, double end)
++{
++  std::uniform_real_distribution<double> dist(start, end);
++  return dist(getGlobalRng());
++}
++
+ NFD_LOG_INIT("Forwarder");
+ 
+ static Name
+@@ -77,6 +88,8 @@ Forwarder::Forwarder()
+   });
+ 
+   m_strategyChoice.setDefaultStrategy(getDefaultStrategyName());
++
++  m_loss_rate = 0.0;
+ }
+ 
+ Forwarder::~Forwarder() = default;
+@@ -220,6 +233,7 @@ void
+ Forwarder::onContentStoreHit(const Face& inFace, const shared_ptr<pit::Entry>& pitEntry,
+                              const Interest& interest, const Data& data)
+ {
++  std::cout << "NFD: Content Store Hit!" << std::endl;
+   NFD_LOG_DEBUG("onContentStoreHit interest=" << interest.getName());
+   ++m_counters.nCsHits;
+ 
+@@ -250,6 +264,21 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry, Face& outF
+   // insert out-record
+   pitEntry->insertOrUpdateOutRecord(outFace, interest);
+ 
++  // Simulate packet loss at sender side
++  if (interest.getName().compare(0, 3, syncPrefix) == 0 || 
++      interest.getName().compare(0, 1, dataPrefix) == 0) {
++    if (m_loss_rate != 0.0) {
++      uint64_t number = getRandomNumber(0, 100);
++      double bound = m_loss_rate * 100;
++      if (number >= 0 && number < bound) {
++        std::cout << "Packet dropped with random number: " << number << std::endl;
++        return;
++      } else {
++        std::cout << "Packet not dropped with random number: " << number << std::endl;
++      }
++    }
++  }
++
+   // send Interest
+   outFace.sendInterest(interest);
+   ++m_counters.nOutInterests;
+@@ -418,7 +447,22 @@ Forwarder::onOutgoingData(const Data& data, Face& outFace)
+   }
+ 
+   // TODO traffic manager
+-
++  
++  // Simulate packet loss at sender side
++  if (data.getName().compare(0, 3, syncPrefix) == 0 || 
++      data.getName().compare(0, 1, dataPrefix) == 0) {
++    if (m_loss_rate != 0.0) {
++      uint64_t number = getRandomNumber(0, 100);
++      double bound = m_loss_rate * 100;
++      if (number >= 0 && number < bound) {
++        std::cout << "Packet dropped with random number: " << number << std::endl;
++        return;
++      } else {
++        std::cout << "Packet not dropped with random number: " << number << std::endl;
++      }
++    }
++  }
++  
+   // send Data
+   outFace.sendData(data);
+   ++m_counters.nOutData;
+diff --git a/daemon/fw/forwarder.hpp b/daemon/fw/forwarder.hpp
+index c873107..a90c6fd 100644
+--- a/daemon/fw/forwarder.hpp
++++ b/daemon/fw/forwarder.hpp
+@@ -191,6 +191,12 @@ public: // allow enabling ndnSIM content store (will be removed in the future)
+     m_csFromNdnSim = cs;
+   }
+ 
++  void
++  setLossRate(double loss_rate) {
++    std::cout << "set m_loss_rate as " << loss_rate << std::endl;
++    m_loss_rate = loss_rate;
++  }
++
+ public:
+   /** \brief trigger before PIT entry is satisfied
+    *  \sa Strategy::beforeSatisfyInterest
+@@ -305,6 +311,8 @@ private:
+   NetworkRegionTable m_networkRegionTable;
+   shared_ptr<Face>   m_csFace;
+ 
++  double m_loss_rate;
++
+   ns3::Ptr<ns3::ndn::ContentStore> m_csFromNdnSim;
+ 
+   // allow Strategy (base class) to enter pipelines

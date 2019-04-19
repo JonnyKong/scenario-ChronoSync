@@ -147,6 +147,10 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
   dataName.append(m_logic.getSessionName(prefix)).appendNumber(newSeq);
   data->setName(dataName);
   
+  int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+  std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
+            << dataName << std::endl;
+
   if (m_signingId.empty())
     m_keyChain.sign(*data);
   else
@@ -160,7 +164,7 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
 void
 Socket::publishData(const Block& content, const ndn::time::milliseconds& freshness,
                     const uint64_t& seqNo, const Name& prefix)
-{
+{  
   shared_ptr<Data> data = make_shared<Data>();
   data->setContent(content);
   data->setFreshnessPeriod(freshness);
@@ -169,7 +173,11 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
   Name dataName("/chronosync");
   dataName.append(m_logic.getSessionName(prefix)).appendNumber(newSeq);
   data->setName(dataName);
-  
+ 
+  int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+  std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
+            << dataName << std::endl;
+ 
   if (m_signingId.empty())
     m_keyChain.sign(*data);
   else
