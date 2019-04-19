@@ -13,6 +13,7 @@ After checking out the correct versions, you have to apply these two patches to 
 
 * `ndnSim_patches/ndnSIM.patch` (to `ns3/src/ndnSIM`)
 * `ndnSim_patches/NFD.patch` (to `ns3/src/ndnSIM/NFD`)
+* `ndnSim_patches/ndn-cxx.patch` (to `ns3/src/ndnSIM/ndn-cxx`)
 
 These patches are used to implement some additional features that ns-3 doesn't currently support (e.g. loss rate in Wi-Fi networks).
 
