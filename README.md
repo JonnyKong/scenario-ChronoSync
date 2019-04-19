@@ -7,7 +7,17 @@ ChronoSync Simulation Scenario in Ad-hoc Network
 * ndnSIM 2.6 (tagged as `ndnSIM-2.6`)
   * Note that you have to remove all `DummyIOService` in NFD 0.6.2 and ndn-cxx 0.6.2.
 
+### Applying Patches
+
+After checking out the correct versions, you have to apply these two patches to ndnSIM and NFD:
+
+* `ndnSim_patches/ndnSIM.patch` (to `ns3/src/ndnSIM`)
+* `ndnSim_patches/NFD.patch` (to `ns3/src/ndnSIM/NFD`)
+
+These patches are used to implement some additional features that ns-3 doesn't currently support (e.g. loss rate in Wi-Fi networks).
+
 ### Compiling ns-3
+
 To configure in optimized mode without logging **(default)**:
 
     ./waf configure
