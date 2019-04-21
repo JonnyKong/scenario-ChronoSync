@@ -30,8 +30,7 @@ ChronoSync::ChronoSync(uint64_t nid, const int minNumberMessages, const int maxN
   , m_randomGenerator(nid)
   // , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(1000, 3000))
   , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(40000 * 0.9, 40000 * 1.1))
-  , m_messagesUniformRandom(m_randomGenerator, boost::uniform_int<>(minNumberMessages, maxNumberMessages))
-  // , m_numberMessages(m_messagesUniformRandom())
+  // , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(10000 * 0.9, 10000 * 1.1))
   , m_numberMessages(1)
 {
 }

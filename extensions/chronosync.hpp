@@ -84,7 +84,6 @@ private:
 
   boost::mt19937 m_randomGenerator;
   boost::variate_generator<boost::mt19937&, boost::uniform_int<> > m_rangeUniformRandom;
-  boost::variate_generator<boost::mt19937&, boost::uniform_int<> > m_messagesUniformRandom;
 
   int m_numberMessages;
 };

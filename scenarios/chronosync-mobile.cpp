@@ -25,7 +25,6 @@
 #include "ns3/ndnSIM-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
-#include "ns3/error-rate-model.h"
 #include <cstdio>
 
 
@@ -36,9 +35,6 @@ namespace ndn {
 int
 main(int argc, char* argv[])
 {
-  //freopen("/home/jonnykong/ndnSim_tmp/scenario-ChronoSync/stdout.txt", "w", stdout);
-  //freopen("/home/jonnykong/ndnSim_tmp/scenario-ChronoSync/stderr.txt", "w", stderr);
-
   std::string phyMode("DsssRate11Mbps");
   Config::SetDefault ("ns3::WifiRemoteStationManager::FragmentationThreshold", StringValue ("2200"));
   Config::SetDefault ("ns3::WifiRemoteStationManager::RtsCtsThreshold", StringValue ("2200"));

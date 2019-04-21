@@ -9,7 +9,7 @@ ChronoSync Simulation Scenario in Ad-hoc Network
 
 ### Applying Patches
 
-After checking out the correct versions, you have to apply these two patches to ndnSIM and NFD:
+After checking out the correct versions, you have to apply these patches to ndnSIM and NFD:
 
 * `ndnSim_patches/ndnSIM.patch` (to `ns3/src/ndnSIM`)
 * `ndnSim_patches/NFD.patch` (to `ns3/src/ndnSIM/NFD`)
