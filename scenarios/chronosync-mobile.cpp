@@ -75,7 +75,6 @@ main(int argc, char* argv[])
 
   // 1. Install wifi
   NetDeviceContainer wifiNetDevices = wifi.Install(wifiPhyHelper, wifiMacHelper, nodes);
-  // wifiNetDevices.Get(1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
   wifi.AssignStreams(wifiNetDevices, 0);
 
   // 2. Install mobility
