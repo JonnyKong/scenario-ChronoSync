@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
     Take as input a list of files, and plot average CDF.
+    You can select the x-axis to be either absolution simulation time, or sync
+    delay.
+
     @Author jonnykong@cs.ucla.edu
     @Date   2019-04-09
 """
@@ -30,9 +33,9 @@ class CdfPlotter(object):
         Add a new file and parse the output.
         """
         self._filenames.append(filename)
-        self._parse_file(filename)
+        self._parse_file(filename, plot_delay=True)
 
-    def plot_cdf_mean(self, save=False):
+    def plot_cdf(self, save=False):
         """
         Calculate the mean of self._ys_mesh and draw CDF graph, or save the graph
         to "tmp.png".
@@ -46,27 +49,40 @@ class CdfPlotter(object):
         ax.plot(self._x_mesh, y_mean)
         plt.ylim((0, 1))
         if save:
-            fig.savefig('tmp.png')
+            fig_name = "tmp.png"
+            print("Plot saved to %s" % fig_name)
+            fig.savefig(fig_name)
         else:
             plt.show()
 
-    def _parse_file(self, filename):
+    def _parse_file(self, filename, plot_delay=True):
         """
         Read one file and interpolate its values. Then, normalize the values
         to [0, 1] and add to self._ys_mesh.
+        Args:
+            plot_delay (bool): Plot with x-axis being the delay, rather than the
+                absolute time of the simulation. This means all data are produced
+                at time 0, so data generation time does not reflect on the graph.
         """
         x_coord = []
         data_store = set()
+        generated_time = dict()
         with open(filename, "r") as f:
             for line in f.readlines():
                 if line.find("Store New Data") == -1:
                     continue
+                # if line.find("Update New Seq") == -1:
+                #     continue
                 elements = line.strip().split(' ')
                 time = elements[0]
                 data = elements[-1]
                 if data not in data_store:
                     data_store.add(data)
-                x_coord.append(int(time) / 1000000)
+                    generated_time[data] = int(time)
+                if plot_delay:
+                    x_coord.append((int(time) - generated_time[data]) / 1000000)
+                else:
+                    x_coord.append(int(time) / 1000000)
         y_mesh = self._interp0d(x_coord)
         y_mesh = [float(l / (len(data_store) * self._node_num)) for l in y_mesh]
         self._ys_mesh.append(y_mesh)

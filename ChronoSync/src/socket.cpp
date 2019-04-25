@@ -210,7 +210,7 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
   // Add random timer for collision avoidance
   int delay = m_data_interest_random();
   m_scheduler.scheduleEvent(time::milliseconds(delay), 
-                            [this, interest, interestName, dataCallback, failureCallback, nRetries]{
+                            [this, interest, interestName, dataCallback, failureCallback, nRetries] {
     int64_t now = ns3::Simulator::Now().GetMicroSeconds();
     std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (1): "
               << interestName << std::endl;
