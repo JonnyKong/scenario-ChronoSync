@@ -191,7 +191,7 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
 void
 Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
                   const DataValidatedCallback& dataCallback,
-                  int nRetries)
+                  int nRetries, bool isFwd)
 {
   Name interestName;
   interestName.append(m_routingPrefix).append(sessionName).appendNumber(seqNo);
@@ -201,8 +201,10 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
   interest.setInterestLifetime(time::milliseconds(5000));
 
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
-  std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
-            << interestName << std::endl;
+  if (!isFwd) {
+    std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
+              << interestName << std::endl;
+  }
 
   DataValidationErrorCallback failureCallback =
     bind(&Socket::onDataValidationFailed, this, _1, _2);
@@ -210,10 +212,10 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
   // Add random timer for collision avoidance
   int delay = m_data_interest_random();
   m_scheduler.scheduleEvent(time::milliseconds(delay), 
-                            [this, interest, interestName, dataCallback, failureCallback, nRetries] {
+                            [this, interest, interestName, dataCallback, failureCallback, nRetries, isFwd] {
     int64_t now = ns3::Simulator::Now().GetMicroSeconds();
-    std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (1): "
-              << interestName << std::endl;
+    std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (" 
+              << (isFwd ? "Forward" : "1") << "): " << interestName << std::endl;
     m_face.expressInterest(interest,
                            bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
                            bind(&Socket::onDataTimeout, this, _1, nRetries,
@@ -265,6 +267,8 @@ Socket::onInterest(const Name& prefix, const Interest& interest)
             << interest.getName().toUri() << std::endl;
   
   shared_ptr<const Data> data = m_ims.find(interest);
+  
+  // Return if data in data store
   if (data != nullptr) {
     int64_t now = ns3::Simulator::Now().GetMicroSeconds();
     std::cout << now << " microseconds node(" << m_nid << ") Send Data Reply "
@@ -275,7 +279,29 @@ Socket::onInterest(const Name& prefix, const Interest& interest)
     m_scheduler.scheduleEvent(time::milliseconds(delay), [this, data]{
       m_face.put(*data);
     });
+  } else if (m_no_data_callback) {
+    // Notify app that received data interest can't be satisfied, so app can decide
+    //  whether to forward it.
+    m_no_data_callback(interest);
   }
+  
+  /*
+  // If data not in data store, forward with 50% probability. Forwarded interests
+  //  are not retransmtitted
+  else {
+    int delay = m_data_interest_random();
+    m_scheduler.scheduleEvent(time::milliseconds(delay), [this, interest, dataCallback, failureCallback] {
+      int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+      std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (Forward): "
+                << interest.getName.toUri() << std::endl;
+      m_face.expressInterest(interest,
+                             bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
+                             [](const Interest&, const lp::Nack&) {}
+                             [](const Interest&) {});
+    });
+    
+  }
+  */
 }
 
 void

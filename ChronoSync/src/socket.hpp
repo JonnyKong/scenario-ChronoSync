@@ -76,7 +76,7 @@ public:
   ~Socket();
 
   using DataValidatedCallback = function<void(const Data&)>;
-
+  using NoDataCallback = function<void(const Interest&)>;
   using DataValidationErrorCallback = function<void(const Data&, const ValidationError& error)> ;
 
   /**
@@ -185,11 +185,12 @@ public:
    * @param seq The seqNo of the data packet.
    * @param onValidated The callback when the retrieved packet has been validated.
    * @param nRetries The number of retries.
+   * @param isFwd Whether this is forwarded data interest
    */
   void
   fetchData(const Name& sessionName, const SeqNo& seq,
             const DataValidatedCallback& onValidated,
-            int nRetries = 0);
+            int nRetries = 0, bool isFwd = false);
 
   /**
    * @brief Retrive a data packet with a particular seqNo from a session
@@ -228,8 +229,16 @@ public:
 
   /// @brief Set node to keep a copy of every data received
   void
-  setKeepDataCopy() {
+  setKeepDataCopy()
+  {
     m_keep_data_copy = true;
+  }
+
+  /// @brief Set callback handler for no corresponding data in data store
+  void
+  setNoDataCallback(NoDataCallback&& cb)
+  {
+    m_no_data_callback = cb;
   }
 
 private:
@@ -267,6 +276,7 @@ private:
   uint64_t m_nid;                               // Node ID for printing debug statements`
   bool m_keep_data_copy;                        // Whether to keep a local copy for every data
   std::unordered_map<Name, Data> m_data_store;  
+  NoDataCallback m_no_data_callback;
 
   Name m_signingId;
   ndn::KeyChain& m_keyChain;

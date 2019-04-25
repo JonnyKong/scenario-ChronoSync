@@ -31,6 +31,7 @@ ChronoSync::ChronoSync(uint64_t nid, const int minNumberMessages, const int maxN
   // , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(1000, 3000))
   , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(40000 * 0.9, 40000 * 1.1))
   // , m_rangeUniformRandom(m_randomGenerator, boost::uniform_int<>(10000 * 0.9, 10000 * 1.1))
+  , m_forwardUniformRandom(m_randomGenerator, boost::uniform_int<>(0, 100))
   , m_numberMessages(1)
 {
 }
@@ -109,6 +110,28 @@ ChronoSync::printData(const Data& data)
   }
 }
 
+void
+ChronoSync::noDataCallback(const Interest& interest)
+{
+  // This data interest can't be satisfied, forward again with 50% probability.
+  // Forwarded data interest doesn't get retransmitted.
+  int prob = m_forwardUniformRandom();
+  if (prob > 50)
+    return;
+  
+  int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+  std::cout << now << " microseconds node(" << m_nid 
+            << ") noDataCallback(): " << interest.getName() << "\n";
+
+  Name sessionName = interest.getName().getSubName(-3, 2);
+  std::string lastComponent = interest.getName().getSubName(-1, 1).toUri().substr(1);
+  lastComponent.erase(std::remove(lastComponent.begin(), lastComponent.end(), '%'), lastComponent.end());
+  chronosync::SeqNo seq = std::stoul(lastComponent, nullptr, 16);
+  std::cout << "Forward data: " << sessionName << "/" << seq << std::endl;
+  m_socket->fetchData(sessionName, seq,
+                      bind(&ChronoSync::printData, this, _1),
+                      0, true);
+}
 
 void
 ChronoSync::processSyncUpdate(const std::vector<chronosync::MissingDataInfo>& updates)
@@ -140,6 +163,7 @@ ChronoSync::initializeSync()
                                                   bind(&ChronoSync::processSyncUpdate, this, _1));
   m_socket->setNodeID(m_nid);
   m_socket->setKeepDataCopy();
+  m_socket->setNoDataCallback(std::bind(&ChronoSync::noDataCallback, this, _1));
 }
 
 void

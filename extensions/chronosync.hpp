@@ -55,6 +55,9 @@ public:
   printData(const Data& data);
 
   void
+  noDataCallback(const Interest& interest);
+  
+  void
   processSyncUpdate(const std::vector<chronosync::MissingDataInfo>& updates);
 
   void
@@ -84,6 +87,7 @@ private:
 
   boost::mt19937 m_randomGenerator;
   boost::variate_generator<boost::mt19937&, boost::uniform_int<> > m_rangeUniformRandom;
+  boost::variate_generator<boost::mt19937&, boost::uniform_int<> > m_forwardUniformRandom;
 
   int m_numberMessages;
 };
