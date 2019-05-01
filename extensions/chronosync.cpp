@@ -34,6 +34,10 @@ ChronoSync::ChronoSync(uint64_t nid, const int minNumberMessages, const int maxN
   , m_forwardUniformRandom(m_randomGenerator, boost::uniform_int<>(0, 100))
   , m_numberMessages(1)
 {
+  // Print NFD traffic at the end of simulation
+  m_scheduler.scheduleEvent(time::seconds(2395), [this] {
+    printNFDTraffic();
+  });
 }
 
 void
@@ -179,5 +183,15 @@ ChronoSync::runPeriodically()
   m_scheduler.scheduleEvent(ndn::time::milliseconds(100 * m_nid),
                             bind(&ChronoSync::publishDataPeriodically, this, 1));
 }
+
+void
+ChronoSync::printNFDTraffic()
+{
+  Interest i("/ndn/getNDNTraffic", time::milliseconds(5));
+  m_face.expressInterest(i, [](const Interest&, const Data&) {},
+                         [](const Interest&, const lp::Nack&) {},
+                         [](const Interest&) {});
+}
+
 
 } // namespace ndn

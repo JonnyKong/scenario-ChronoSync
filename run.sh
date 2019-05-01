@@ -4,7 +4,7 @@
 set -e
 
 RUN_TIMES=12
-LOSS_RATE=0.50
+LOSS_RATE=0.0
 
 rm -f results/*.txt
 ./waf

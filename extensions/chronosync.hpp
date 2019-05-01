@@ -69,6 +69,9 @@ public:
   void
   runPeriodically();
 
+  void
+  printNFDTraffic();
+
 private:
   uint64_t m_nid;
   boost::asio::io_service m_ioService;
