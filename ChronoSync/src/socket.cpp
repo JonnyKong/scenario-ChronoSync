@@ -180,7 +180,7 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
   std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
             << dataName << std::endl;
   std::cout << now << " microseconds node(" << m_nid << ") Store New Data: "
-            << dataName << std::endl;
+            << dataName.getSubName(1) << std::endl;
  
   if (m_signingId.empty())
     m_keyChain.sign(*data);
