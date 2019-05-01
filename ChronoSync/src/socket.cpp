@@ -150,6 +150,8 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
   std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
             << dataName << std::endl;
+  std::cout << now << " microseconds node(" << m_nid << ") Store New Data: "
+            << dataName.getSubName(1) << std::endl;
 
   if (m_signingId.empty())
     m_keyChain.sign(*data);
@@ -176,6 +178,8 @@ Socket::publishData(const Block& content, const ndn::time::milliseconds& freshne
  
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
   std::cout << now << " microseconds node(" << m_nid << ") Update New Seq: "
+            << dataName << std::endl;
+  std::cout << now << " microseconds node(" << m_nid << ") Store New Data: "
             << dataName << std::endl;
  
   if (m_signingId.empty())
@@ -284,24 +288,6 @@ Socket::onInterest(const Name& prefix, const Interest& interest)
     //  whether to forward it.
     m_no_data_callback(interest);
   }
-  
-  /*
-  // If data not in data store, forward with 50% probability. Forwarded interests
-  //  are not retransmtitted
-  else {
-    int delay = m_data_interest_random();
-    m_scheduler.scheduleEvent(time::milliseconds(delay), [this, interest, dataCallback, failureCallback] {
-      int64_t now = ns3::Simulator::Now().GetMicroSeconds();
-      std::cout << now << " microseconds node(" << m_nid << ") Send Data Interest (Forward): "
-                << interest.getName.toUri() << std::endl;
-      m_face.expressInterest(interest,
-                             bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
-                             [](const Interest&, const lp::Nack&) {}
-                             [](const Interest&) {});
-    });
-    
-  }
-  */
 }
 
 void
