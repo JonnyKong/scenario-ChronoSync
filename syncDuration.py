@@ -32,6 +32,8 @@ class SyncDuration:
         self._n_sync_reply = 0
         self._n_data_interest = 0
         self._n_data_reply = 0
+        self._n_data_interest_nfd = 0
+        self._n_data_reply_nfd = 0
 
     def run(self):
         self._getSyncDuration()
@@ -40,9 +42,7 @@ class SyncDuration:
     def _getSyncDuration(self):
         with open(self._filename, "r") as f:
             for line in f.readlines():
-                if line.find("microseconds") == -1:
-                    continue
-                elif line.find("Store New Data") != -1:
+                if line.find("Store New Data") != -1:
                     self._processDataSyncDuration(line)
                 elif line.find("Update New Seq") != -1:
                     self._processStateSyncDuration(line)
@@ -54,9 +54,10 @@ class SyncDuration:
                     self._processDataInterest(line)
                 elif line.find("Send Data Reply") != -1:
                     self._processDataReply(line)
-                # else:
-                #     print(line)
-                #     raise AssertionError()  # For debug
+                elif line.find("m_outDataInterest") != -1:
+                    self._processDataInterestNfd(line)
+                elif line.find("m_outData ") != -1:
+                    self._processDataReplyNfd(line)
 
     def _processDataSyncDuration(self, line):
         elements = line.strip().split(' ')
@@ -108,6 +109,12 @@ class SyncDuration:
     def _processDataReply(self, line):
         self._n_data_reply += 1
 
+    def _processDataInterestNfd(self, line):
+        self._n_data_interest_nfd += int(line.strip().split()[-1])
+
+    def _processDataReplyNfd(self, line):
+        self._n_data_reply_nfd += int(line.strip().split()[-1])
+
     def _printSyncDuration(self):
         data_availability = float(len(self._data_sync_duration)) / float(len(self._data_store))
         print("data availability = " + str(data_availability))
@@ -122,6 +129,8 @@ class SyncDuration:
         print("out ack = " + str(self._n_sync_reply))
         print("out data interest = " + str(self._n_data_interest))
         print("out data = " + str(self._n_data_reply))
+        print("NFD out data interest = " + str(self._n_data_interest_nfd))
+        print("NFD out data reply = " + str(self._n_data_reply_nfd))
 
         n_data = len(self._data_store)
         print("Number of app data produced = " + str(n_data))
