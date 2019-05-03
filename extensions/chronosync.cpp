@@ -150,7 +150,7 @@ ChronoSync::processSyncUpdate(const std::vector<chronosync::MissingDataInfo>& up
     for (chronosync::SeqNo seq = updates[i].low; seq <= updates[i].high; ++seq) {
       m_socket->fetchData(updates[i].session, seq,
                           bind(&ChronoSync::printData, this, _1),
-                          10);
+                          9);
     }
 
   }

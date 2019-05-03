@@ -254,7 +254,7 @@ private:
   onDataTimeout(const Interest& interest, int nRetries,
                 const DataValidatedCallback& dataCallback,
                 const DataValidationErrorCallback& failCallback,
-                const std::string& reason);
+                int64_t last, const std::string& reason);
 
   void
   onDataValidationFailed(const Data& data,

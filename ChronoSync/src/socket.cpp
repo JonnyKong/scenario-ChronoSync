@@ -202,7 +202,7 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
 
   Interest interest(interestName);
   // interest.setMustBeFresh(true);
-  interest.setInterestLifetime(time::milliseconds(5000));
+  interest.setInterestLifetime(time::seconds(5));
 
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
   if (!isFwd) {
@@ -223,9 +223,9 @@ Socket::fetchData(const Name& sessionName, const SeqNo& seqNo,
     m_face.expressInterest(interest,
                            bind(&Socket::onData, this, _1, _2, dataCallback, failureCallback),
                            bind(&Socket::onDataTimeout, this, _1, nRetries,
-                                dataCallback, failureCallback, "NACK"), // Nack
+                                dataCallback, failureCallback, now, "NACK"), // Nack
                            bind(&Socket::onDataTimeout, this, _1, nRetries,
-                                dataCallback, failureCallback, "TIMEOUT"));
+                                dataCallback, failureCallback, now, "TIMEOUT"));
   });
 }
 
@@ -274,13 +274,12 @@ Socket::onInterest(const Name& prefix, const Interest& interest)
   
   // Return if data in data store
   if (data != nullptr) {
-    int64_t now = ns3::Simulator::Now().GetMicroSeconds();
-    std::cout << now << " microseconds node(" << m_nid << ") Send Data Reply "
-              << interest.getName().toUri() << std::endl;
-
     // Add random timer for collision avoidance
     int delay = m_data_interest_random();
-    m_scheduler.scheduleEvent(time::milliseconds(delay), [this, data]{
+    m_scheduler.scheduleEvent(time::milliseconds(delay), [this, interest, data]{
+      int64_t now = ns3::Simulator::Now().GetMicroSeconds();
+      std::cout << now << " microseconds node(" << m_nid << ") Send Data Reply "
+                << interest.getName().toUri() << std::endl;
       m_face.put(*data);
     });
   } else if (m_no_data_callback) {
@@ -310,7 +309,7 @@ void
 Socket::onDataTimeout(const Interest& interest, int nRetries,
                       const DataValidatedCallback& onValidated,
                       const DataValidationErrorCallback& onFailed,
-                      const std::string& reason)
+                      int64_t last, const std::string& reason)
 {
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
   // std::cout << now << " microseconds node(" << m_nid << ") onDataTimeout()\n";
@@ -326,8 +325,8 @@ Socket::onDataTimeout(const Interest& interest, int nRetries,
   int delay = m_data_interest_random();
 
   // Should wait for longer time if received NACK
-  if (reason == "NACK")
-    delay += 4000;
+  if (reason == "NACK" && now < last + 5 * 1000 * 1000)
+    delay += 5 * 1000 - (now - last) / 1000;
 
   m_scheduler.scheduleEvent(time::milliseconds(delay), 
                             [this, newNonceInterest, nRetries, reason, onValidated, onFailed] {
@@ -337,9 +336,9 @@ Socket::onDataTimeout(const Interest& interest, int nRetries,
     m_face.expressInterest(newNonceInterest,
                            bind(&Socket::onData, this, _1, _2, onValidated, onFailed),
                            bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
-                                onValidated, onFailed, "NACK"), // Nack
+                                onValidated, onFailed, now, "NACK"), // Nack
                            bind(&Socket::onDataTimeout, this, _1, nRetries - 1,
-                                onValidated, onFailed, "TIMEOUT"));
+                                onValidated, onFailed, now, "TIMEOUT"));
   });
 }
 
