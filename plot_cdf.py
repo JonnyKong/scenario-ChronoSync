@@ -48,6 +48,7 @@ class CdfPlotter(object):
         ax = fig.add_subplot(111)
         ax.plot(self._x_mesh, y_mean)
         plt.ylim((0, 1))
+        plt.grid(True)
         if save:
             fig_name = "tmp.png"
             print("Plot saved to %s" % fig_name)
