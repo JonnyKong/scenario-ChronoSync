@@ -4,7 +4,10 @@
 set -e
 
 RUN_TIMES=12
-LOSS_RATE=0.50
+LOSS_RATE=0.0
+if [ $# -eq 1 ]; then
+    LOSS_RATE=$1
+fi
 
 rm -f results/*.txt
 ./waf

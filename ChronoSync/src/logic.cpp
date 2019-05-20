@@ -688,8 +688,12 @@ Logic::sendSyncInterest()
   printDigest(m_state.getRootDigest());
 #endif
 
+  // EventId eventId =
+  //   m_scheduler.scheduleEvent(m_syncInterestLifetime / 2 +
+  //                             ndn::time::milliseconds(m_reexpressionJitter(m_rng)),
+  //                             bind(&Logic::sendSyncInterest, this));
   EventId eventId =
-    m_scheduler.scheduleEvent(m_syncInterestLifetime / 2 +
+    m_scheduler.scheduleEvent(m_syncInterestLifetime +
                               ndn::time::milliseconds(m_reexpressionJitter(m_rng)),
                               bind(&Logic::sendSyncInterest, this));
   m_scheduler.cancelEvent(m_reexpressingInterestId);
@@ -705,8 +709,8 @@ Logic::sendSyncInterest()
   }
   
   int64_t now = ns3::Simulator::Now().GetMicroSeconds();
-  std::cout << now << " microseconds node(" << m_nid << ") Send Sync Interest"
-            << std::endl;
+  std::cout << now << " microseconds node(" << m_nid << ") Send Sync Interest: "
+            << interestName << std::endl;
 
   m_outstandingInterestId = m_face.expressInterest(interest,
                                                    bind(&Logic::onSyncData, this, _1, _2),

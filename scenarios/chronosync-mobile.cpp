@@ -46,7 +46,7 @@ main(int argc, char* argv[])
   cmd.AddValue("lossRate", "loss rate", loss_rate);
 
   cmd.Parse(argc, argv);
-  int node_num = 20;
+  int node_num = 30;
   int range = 60;
   int sim_time = 2400;
 
@@ -98,19 +98,26 @@ main(int argc, char* argv[])
     Vector pos = position->GetPosition();
     std::cout << "node " << idx << " x position: " << pos.x << " " << pos.y << std::endl;
 
-    AppHelper syncAppHelper("ChronoSyncApp");
-    syncAppHelper.SetAttribute("NodeID", UintegerValue(idx));
-    syncAppHelper.SetAttribute("SyncPrefix", StringValue("/ndn/broadcast/sync"));
-    syncAppHelper.SetAttribute("UserPrefix", StringValue(std::string("/peer") + std::to_string(idx)));
-    syncAppHelper.SetAttribute("RoutingPrefix", StringValue("/chronosync"));
-    syncAppHelper.SetAttribute("MinNumberMessages", StringValue("1"));
-    syncAppHelper.SetAttribute("MaxNumberMessages", StringValue("100"));
-    syncAppHelper.SetAttribute("PeriodicPublishing", StringValue("true"));
-    syncAppHelper.SetAttribute("DataGenerationDuration", IntegerValue(800));
-    syncAppHelper.Install(object).Start(Seconds(2));
+    if (idx < 20) {
+      AppHelper syncAppHelper("ChronoSyncApp");
+      syncAppHelper.SetAttribute("NodeID", UintegerValue(idx));
+      syncAppHelper.SetAttribute("SyncPrefix", StringValue("/ndn/broadcast/sync"));
+      syncAppHelper.SetAttribute("UserPrefix", StringValue(std::string("/peer") + std::to_string(idx)));
+      syncAppHelper.SetAttribute("RoutingPrefix", StringValue("/chronosync"));
+      syncAppHelper.SetAttribute("MinNumberMessages", StringValue("1"));
+      syncAppHelper.SetAttribute("MaxNumberMessages", StringValue("100"));
+      syncAppHelper.SetAttribute("PeriodicPublishing", StringValue("true"));
+      syncAppHelper.SetAttribute("DataGenerationDuration", IntegerValue(800));
+      syncAppHelper.Install(object).Start(Seconds(2));
+    } else {
+      AppHelper pureForwarderAppHelper("PureForwarderApp");
+      pureForwarderAppHelper.SetAttribute("NodeID", UintegerValue(idx));
+      pureForwarderAppHelper.Install(object).Start(Seconds(2));
+    }
     
     // Set loss rate
     StackHelper::setLossRate(loss_rate, object);
+    StackHelper::setNodeID(idx, object);
 
     // Add route to all nodes
     FibHelper::AddRoute(object, "/ndn/broadcast/sync", std::numeric_limits<int32_t>::max());
